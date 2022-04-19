@@ -59,6 +59,7 @@ module lab62 (
 
 
 logic Reset_h, vssig, blank, sync, VGA_Clk;
+logic [ 9: 0]   LEDR_tmp;
 
 
 //=======================================================
@@ -68,7 +69,9 @@ logic Reset_h, vssig, blank, sync, VGA_Clk;
 	logic [3:0] hex_num_4, hex_num_3, hex_num_1, hex_num_0; //4 bit input hex digits
 	logic [1:0] signs;
 	logic [1:0] hundreds;
-	logic [9:0] drawxsig, drawysig, ballxsig, ballysig, ballsizesig;
+	
+	// ball position; ball size; ball collider size
+	logic [9:0] drawxsig, drawysig, ballxsig, ballysig, ballhsig, ballwsig, ballcw, ballch; 
 	logic [7:0] Red, Blue, Green;
 	logic [7:0] keycode [6];
 
@@ -153,43 +156,30 @@ logic Reset_h, vssig, blank, sync, VGA_Clk;
 		
 		//LEDs and HEX
 		.hex_digits_export({hex_num_4, hex_num_3, hex_num_1, hex_num_0}),
-		.leds_export({hundreds, signs, LEDR}),
+		.leds_export({hundreds, signs, LEDR_tmp}),
 		.keycode0_export({keycode[2],keycode[1],keycode[0]}),
 		.keycode1_export({keycode[5],keycode[4],keycode[3]})
 	 );
+	 
 	logic [0:29][0:39] tile;
-	logic [5:0] row, col, col_left, col_right, row_up, row_down;
-	logic tile_on, left, right, up, down;
+	logic left, right, up, down;
 
 //instantiate a vga_controller, ball, and color_mapper here with the ports.
 //instantiate vga_controller module
 	vga_controller vga(.Clk(MAX10_CLK1_50), .Reset(Reset_h), .hs(VGA_HS), .vs(VGA_VS), 
 						.pixel_clk(VGA_Clk), .blank(blank), .sync(sync), .DrawX(drawxsig), .DrawY(drawysig));
 //instantiate ball module
-	ball b0(.Reset(Reset_h),.frame_clk(VGA_VS),.keycode(keycode), .up(up), .left(left), .right(right), .down(down), .BallX(ballxsig),
-				.BallY(ballysig),.BallS(ballsizesig));
+	ball b0(.Reset(Reset_h),.frame_clk(VGA_VS),
+				.keycode(keycode), .tile(tile),
+				.move_left(LEDR[1]), .move_right(LEDR[0]),
+				.BallX(ballxsig), .BallY(ballysig),.BallH(ballhsig),.BallW(ballwsig), .BallCH(ballch), .BallCW(ballcw));
 //instantiate color_mapper module
-	color_mapper(.BallX(ballxsig), .BallY(ballysig),.Ball_size(ballsizesig),
+	color_mapper(.BallX(ballxsig), .BallY(ballysig),.Ball_h(ballhsig),.Ball_w(ballwsig),
 					.DrawX(drawxsig), .DrawY(drawysig), 
-					.tile_on(tile_on), //.tile(tile)
+					.tile(tile),
 					.Red(Red),.Green(Green),.Blue(Blue));
-	
 
 	tile_map tile0(.tile(tile));
-	always_comb
-		begin
-			col = drawxsig >> 4;
-			row = drawysig >> 4;
-			tile_on = tile[row][col];
-			
-			col_left = (ballxsig-ballsizesig-1)>>4;		// left
-			col_right = (ballxsig+ballsizesig+1)>>4;	// right
-			row_up = (ballysig-ballsizesig-1)>>4;			// up
-			row_down = (ballysig+ballsizesig+1)>>4;	// down
-			left = tile[ballysig>>4][col_left];
-			right = tile[ballysig>>4][col_right];
-			up = tile[row_up][ballxsig>>4];
-			down = tile[row_down][ballxsig>>4];
-		end
+	
 
 endmodule

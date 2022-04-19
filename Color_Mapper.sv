@@ -13,24 +13,35 @@
 //-------------------------------------------------------------------------
 
 
-module  color_mapper ( input        [9:0] BallX, BallY, DrawX, DrawY, Ball_size,
-								input tile_on,
+module  color_mapper ( input        [9:0] BallX, BallY, DrawX, DrawY, Ball_h, Ball_w,
+								input 		[0:29][0:39] tile,
                        output logic [7:0]  Red, Green, Blue );
     
-    logic ball_on;
-	  
+    logic ball_on, tile_on;
+	 logic [9:0] row, col;
+	
     int DistX, DistY, Size;
 	 assign DistX = DrawX - BallX;
     assign DistY = DrawY - BallY;
-    assign Size = Ball_size;
 	  
     always_comb
     begin:Ball_on_proc
-        if ( ( DistX*DistX + DistY*DistY) <= (Size * Size) ) 
+        if ((DrawX >= BallX - Ball_w) &&
+				(DrawX <= BallX + Ball_w) &&
+				(DrawY >= BallY - Ball_h) &&
+				(DrawY <= BallY + Ball_h))
             ball_on = 1'b1;
         else 
             ball_on = 1'b0;
      end 
+	  
+	 always_comb
+    begin:Tile_on_proc
+      col = DrawX >> 4;
+		row = DrawY >> 4;
+		tile_on = tile[row][col];
+     end 
+	
        
     always_comb
     begin:RGB_Display
@@ -42,7 +53,7 @@ module  color_mapper ( input        [9:0] BallX, BallY, DrawX, DrawY, Ball_size,
         end  
 		  else if (tile_on)
 		  begin
-				Red = 8'hff;
+				Red = 8'h55;
             Green = 8'h55;
             Blue = 8'h00;
 		  end
